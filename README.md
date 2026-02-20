@@ -1,128 +1,157 @@
-# Voice AI Agent
+# Voice AI Agent 🎙️
 
-A real-time voice AI agent that uses **LiveKit** for WebRTC communication, **Groq** for AI inference (STT, LLM, TTS), and **RAG** over uploaded documents using **Jina AI embeddings** and **Firestore vector search**.
+A real-time Voice AI Agent built with **LiveKit**, **FastAPI**, and **React**. It features advanced RAG (Retrieval-Augmented Generation) capabilities, supporting document uploads for context-aware conversations.
 
-## Architecture
+## 🏗️ Architecture
 
-```
-Frontend (React + Vite)  ←→  LiveKit Server (Docker)  ←→  LiveKit Agent (Python)
-         |                                                        |
-         └── FastAPI Backend ──┬── Knowledge Base (Firestore)     |
-                               └── RAG Retrieval ←────────────────┘
-```
+The project follows a modular **Clean Architecture** to ensure separation of concerns and scalability.
 
-## Prerequisites
-
-- **Node.js** ≥ 20.x
-- **Python** ≥ 3.11
-- **Docker** (for LiveKit server)
-- **API Keys:**
-  - [Groq API Key](https://console.groq.com) — for STT, LLM, and TTS
-  - [Jina AI API Key](https://jina.ai) — for embeddings
-  - [Firebase Service Account JSON](https://console.firebase.google.com) — for Firestore
-
-## Project Structure
-
-```
-voice-ai-agent/
-├── client/                  # React Frontend (Vite + TailwindCSS)
-│   └── src/
-│       ├── components/      # UI components
-│       ├── lib/             # Utilities & API helpers
-│       └── App.jsx          # Main app layout
-├── server/                  # FastAPI Backend + LiveKit Agent
-│   ├── routers/             # API endpoints
-│   ├── services/            # KB & RAG services
-│   ├── agent/               # LiveKit voice agent
-│   └── main.py              # FastAPI app
-├── docker-compose.yml       # LiveKit server
-└── livekit.yaml             # LiveKit config
+```text
++----------------+      WebRTC       +----------------+      Protocol      +--------------------+
+| Client (React) | <---------------> | LiveKit Cloud  | <----------------> | Voice Agent Worker |
++----------------+                   +----------------+                    +--------------------+
+        |                                                                           |
+        | HTTP                                                                      | Function Calls
+        v                                                                           v
++----------------+                                                         +--------------------+
+|  Backend API   | <-------------- (RAG Context) ------------------------- |      AI Models     |
++----------------+                                                         +--------------------+
+        |                                                                    (Groq, Deepgram)
+        v
++----------------+
+|   Vector DB    |
++----------------+
 ```
 
-## Setup & Run
+### Components
 
-### 1. Environment Variables
+1.  **Frontend (`client/`)**:
+    -   Built with **React**, **Vite**, and **TailwindCSS**.
+    -   Uses `@livekit/components-react` for WebRTC connection and state management.
+    -   Handles real-time audio visualization and transcript display.
+    -   Communicates with Backend API for token generation and document uploads.
+
+2.  **Backend API (`server/main.py`)**:
+    -   Built with **FastAPI**.
+    -   **Auth**: Generates LiveKit Access Tokens.
+    -   **RAG**: Processes uploaded documents, generates embeddings (Jina AI), and stores them in vector storage for retrieval.
+
+3.  **Voice Agent Worker (`server/agent/voice_agent.py`)**:
+    -   Runs as a **LiveKit Worker**.
+    -   Participates in the room solely to handle audio/intelligence.
+    -   **STT**: Groq `whisper-large-v3-turbo` (Fast transcription).
+    -   **LLM**: Groq `llama-3.1-8b-instant` (Intelligence & Tool Calling).
+    -   **TTS**: Deepgram `aura` (Low latency speech synthesis).
+    -   **VAD**: Silero VAD (Voice Activity Detection).
+
+## 🚀 Prerequisites
+
+-   **Node.js** (v18+)
+-   **Python** (v3.11+)
+-   **LiveKit Cloud Account** (or local LiveKit server)
+-   **API Keys**:
+    -   [Groq](https://console.groq.com)
+    -   [Deepgram](https://console.deepgram.com)
+    -   [Jina AI](https://jina.ai)
+    -   [Firebase/Firestore](https://firebase.google.com) 
+
+## 🛠️ Setup
+
+### 1. Clone & Configure
+
+```bash
+git clone https://github.com/codeanuj2528/voice-ai-agent.git
+cd voice-ai-agent
+```
+
+ Create the `.env` file for the server:
 
 ```bash
 cp server/.env.example server/.env
 ```
 
-Edit `server/.env` with your actual keys:
+Update `server/.env` with your credentials:
 
-```env
-GROQ_API_KEY=gsk_xxxxx
-JINA_API_KEY=jina_xxxxx
-LIVEKIT_URL=ws://localhost:7880
-LIVEKIT_API_KEY=devkey
-LIVEKIT_API_SECRET=secret
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-FIRESTORE_PROJECT_ID=your-project-id
+```ini
+GROQ_API_KEY=your_groq_key
+DEEPGRAM_API_KEY=your_deepgram_key
+JINA_API_KEY=your_jina_key
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY=...
 ```
 
-### 2. Start LiveKit Server (Docker)
+### 2. Install Dependencies
 
-```bash
-docker compose up -d
-```
-
-This starts the LiveKit SFU server on port 7880.
-
-### 3. Start Backend (FastAPI)
-
+**Server (Python):**
 ```bash
 cd server
-python -m venv venv
-source venv/bin/activate   # or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-### 4. Start Voice Agent
-
-In a separate terminal:
-
-```bash
-cd server
+python3 -m venv venv
 source venv/bin/activate
-python agent/voice_agent.py dev
+pip install -r requirements.txt
 ```
 
-### 5. Start Frontend
-
+**Client (Node.js):**
 ```bash
 cd client
 npm install
+```
+
+## ▶️ Running the App
+
+### Option 1: One-Click Script (Recommended for Local Dev)
+We provide a helper script to start the Backend API, Voice Worker, and Frontend simultaneously.
+
+```bash
+# Provide execute permission (first time only)
+chmod +x run_app.sh
+
+# Run the app
+./run_app.sh
+```
+-   Frontend: `http://localhost:3000`
+-   Backend API: `http://localhost:8000`
+
+### Option 2: Manual Startup
+
+Run each service in a separate terminal window.
+
+**1. Backend API:**
+```bash
+cd server
+source venv/bin/activate
+uvicorn main:app --reload --port 8000
+```
+
+**2. Voice Worker:**
+```bash
+cd server
+source venv/bin/activate
+# 'dev' mode enables auto-reload and auto-connect
+python agent/voice_agent.py dev
+```
+
+**3. Frontend:**
+```bash
+cd client
 npm run dev
 ```
 
-Open **http://localhost:5173** in your browser.
+## 🐳 Docker Support
 
-## Usage
+The project includes Docker configuration for deployment.
 
-1. **Edit System Prompt** — Use the left sidebar to customize what the agent knows and how it responds
-2. **Upload Documents** — Drop PDF, TXT, MD, or DOCX files to create the knowledge base
-3. **Start Call** — Click "Start Call" to begin a voice conversation
-4. **Ask Questions** — Ask questions that require info from uploaded documents; the agent will search the KB automatically
-5. **View Transcript** — Real-time transcript appears in the right sidebar
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+```
 
-## Tech Stack
+## 📚 Features
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | React + Vite, TailwindCSS v4, plain JS |
-| WebRTC | LiveKit (`@livekit/components-react`) |
-| Backend | FastAPI (Python) |
-| Voice Agent | `livekit-agents` + `livekit-plugins-groq` |
-| STT | Groq `whisper-large-v3-turbo` |
-| LLM | Groq `llama-3.3-70b-versatile` |
-| TTS | Groq `playai-tts` |
-| Embeddings | Jina AI `jina-embeddings-v3` |
-| Vector Store | Google Firestore (KNN vector search) |
-| Infra | Docker Compose (LiveKit Server) |
-
-## Known Limitations
-
-- LiveKit server runs in dev mode (single API key). For production, configure proper key management.
-- Firestore vector search requires a vector index to be created (the first query may give an error with instructions to create it).
-- File size for uploads is limited by FastAPI default (can be configured).
-- The voice agent reads the system prompt from a file at session start; changes take effect on the next call.
+-   **Real-time Voice Conversation**: Ultra-low latency voice interaction.
+-   **RAG (Retrieval Augmented Generation)**: Upload PDF/Docs and ask the agent questions about them.
+-   **Live Transcripts**: See what the agent hears and says in real-time.
+-   **Visualizations**: Dynamic audio visualizers for user and agent.
