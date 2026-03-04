@@ -2,6 +2,8 @@
 
 A real-time Voice AI Agent built with **LiveKit**, **FastAPI**, and **React**. It features advanced RAG (Retrieval-Augmented Generation) capabilities, supporting document uploads for context-aware conversations.
 
+[DEMO](https://drive.google.com/file/d/1UtbGoxWw1nmjBhV6CO0LDpK64Q5VMHyK/view?usp=sharing)
+
 ## 🏗️ Architecture
 
 The project follows a modular **Clean Architecture** to ensure separation of concerns and scalability.
